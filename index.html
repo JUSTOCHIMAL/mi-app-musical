@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lista de canciones</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #fafafa;
+      padding: 20px;
+      max-width: 600px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .cancion {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      padding: 15px;
+      margin-bottom: 15px;
+    }
+    .titulo {
+      font-weight: bold;
+      font-size: 18px;
+    }
+    .artista {
+      font-style: italic;
+      color: #555;
+    }
+    audio {
+      margin-top: 10px;
+      width: 100%;
+      outline: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>🎶 Lista de canciones</h1>
+  <div id="lista-canciones">Cargando canciones...</div>
+
+  <script>
+    // ID de tu hoja de cálculo (extraído del link original)
+    const SHEET_ID = "https://docs.google.com/spreadsheets/d/1CdduNGI21R9WGR4On5kXt2yl3UQHlynLd9MyPdkMqyQ/edit?usp=sharing";
+
+    // URL para obtener datos JSON usando OpenSheet
+    const url = `https://opensheet.elk.sh/${SHEET_ID}/Sheet1`;
+
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        if(!data.length) {
+          document.getElementById("lista-canciones").innerHTML = "No hay canciones para mostrar.";
+          return;
+        }
+        
+        let html = "";
+        data.forEach(cancion => {
+          html += `
+            <div class="cancion">
+              <div class="titulo">${cancion.Título || "Sin título"}</div>
+              <div class="artista">${cancion.Artista || "Desconocido"}</div>
+              <audio controls preload="none" src="${cancion.URL || ""}"></audio>
+            </div>
+          `;
+        });
+        document.getElementById("lista-canciones").innerHTML = html;
+      })
+      .catch(err => {
+        document.getElementById("lista-canciones").innerHTML = "Error al cargar canciones.";
+        console.error(err);
+      });
+  </script>
+</body>
+</html>
