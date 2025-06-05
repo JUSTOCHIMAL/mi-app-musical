@@ -3,13 +3,13 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Lista de canciones</title>
+  <title>Lista completa de canciones</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       background: #fafafa;
       padding: 20px;
-      max-width: 600px;
+      max-width: 700px;
       margin: auto;
     }
     h1 {
@@ -21,57 +21,74 @@
       border-radius: 8px;
       box-shadow: 0 2px 6px rgba(0,0,0,0.1);
       padding: 15px;
-      margin-bottom: 15px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 15px;
+      align-items: flex-start;
     }
-    .titulo {
-      font-weight: bold;
-      font-size: 18px;
+    .portada {
+      width: 100px;
+      height: 100px;
+      border-radius: 6px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: #ddd;
     }
-    .artista {
-      font-style: italic;
-      color: #555;
+    .info {
+      flex-grow: 1;
+    }
+    .campo {
+      margin-bottom: 6px;
+    }
+    .campo strong {
+      color: #333;
     }
     audio {
-      margin-top: 10px;
+      margin-top: 8px;
       width: 100%;
       outline: none;
     }
   </style>
 </head>
 <body>
-  <h1>🎶 Lista de canciones</h1>
+  <h1>🎶 Lista completa de canciones</h1>
   <div id="lista-canciones">Cargando canciones...</div>
 
   <script>
-    // ID de tu hoja de cálculo (extraído del link original)
-    const SHEET_ID = "https://docs.google.com/spreadsheets/d/1CdduNGI21R9WGR4On5kXt2yl3UQHlynLd9MyPdkMqyQ/edit?usp=sharing";
+    const SHEET_ID = "1eoY11BDBBhc0TVMKSB5u1csnj1UDml7POBAyKFvICUM"; // Cambia aquí
 
-    // URL para obtener datos JSON usando OpenSheet
-    const url = `https://opensheet.elk.sh/${SHEET_ID}/Sheet1`;
+    const url = `https://opensheet.elk.sh/${SHEET_ID}/Sheet1`; // Cambia "Sheet1" si hace falta
 
     fetch(url)
       .then(res => res.json())
       .then(data => {
-        if(!data.length) {
+        if (!data.length) {
           document.getElementById("lista-canciones").innerHTML = "No hay canciones para mostrar.";
           return;
         }
-        
+
         let html = "";
         data.forEach(cancion => {
           html += `
             <div class="cancion">
-              <div class="titulo">${cancion.Título || "Sin título"}</div>
-              <div class="artista">${cancion.Artista || "Desconocido"}</div>
-              <audio controls preload="none" src="${cancion.URL || ""}"></audio>
+              <img class="portada" src="${cancion["Portada de la cancion"] || 'https://via.placeholder.com/100'}" alt="Portada" />
+              <div class="info">
+                <div class="campo"><strong>Marca temporal:</strong> ${cancion["Marca temporal"] || "-"}</div>
+                <div class="campo"><strong>Nombre de la cancion:</strong> ${cancion["Nombre de la cancion"] || "-"}</div>
+                <div class="campo"><strong>Artista de la cancion:</strong> ${cancion["Artista de la cancion"] || "-"}</div>
+                <div class="campo"><strong>Album de la cancion:</strong> ${cancion["Album de la cancion"] || "-"}</div>
+                <div class="campo"><strong>Fecha:</strong> ${cancion["fejca"] || "-"}</div>
+                <audio controls preload="none" src="${cancion["Audio o musica"] || ""}"></audio>
+              </div>
             </div>
           `;
         });
+
         document.getElementById("lista-canciones").innerHTML = html;
       })
       .catch(err => {
+        console.error("Error al cargar canciones:", err);
         document.getElementById("lista-canciones").innerHTML = "Error al cargar canciones.";
-        console.error(err);
       });
   </script>
 </body>
