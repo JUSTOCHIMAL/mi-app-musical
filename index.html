@@ -23,42 +23,48 @@
   <script>
     /* --- CONFIGURA ESTOS DOS VALORES --- */
     const SHEET_ID   = "1CdduNGI21R9WGR4On5kXt2yl3UQHlynLd9MyPdkMqyQ";
-    const SHEET_NAME = "Sheet1";        // Cambia si tu pestaña no se llama Sheet1
+    const SHEET_NAME = "Sheet1";                       // Cambia si tu pestaña no se llama Sheet1
     /* ----------------------------------- */
 
     const url = `https://opensheet.elk.sh/${SHEET_ID}/${encodeURIComponent(SHEET_NAME)}`;
 
-    /* Extrae el ID y construye el enlace directo de Google Drive  */
-    function getDriveId(link){
+    /** Extrae ID de cualquier tipo de enlace de Google Drive */
+    function extractDriveId(link){
       if(!link) return null;
-      const byD = link.match(/\/d\/([A-Za-z0-9_-]{10,})/);
-      if(byD) return byD[1];
-      const byId = link.match(/id=([A-Za-z0-9_-]{10,})/);
-      return byId ? byId[1] : null;
+      // /d/ID/...   ó   /uc?id=ID   ó   open?id=ID   ó   ?id=ID
+      const m = link.match(/(?:\/d\/|id=)([A-Za-z0-9_-]{10,})/);
+      return m ? m[1] : null;
     }
-    function convertDrive(link,{isImage=false}={}){
+
+    /** Convierte enlace de Drive en enlace directo para <img> o <audio> */
+    function toDirectDrive(link,{isImage=false}={}){
       if(!link) return "";
-      if(link.includes("drive.google.com/uc?")) return link;   // ya es directo
-      const id = getDriveId(link);
-      if(!id) return link;                                     // no es enlace de Drive
-      /* export=view muestra imagen directamente, export=download sirve para audio */
+      if(!link.includes("drive.google.com")) return link;      // no es Drive
+      if(link.includes("/uc?"))               return link;     // ya es directo
+
+      const id = extractDriveId(link);
+      if(!id) return link;                                     // no se pudo extraer
+
+      // export=view → muestra imagen   |   export=download → descarga (audio)
       return isImage
         ? `https://drive.google.com/uc?export=view&id=${id}`
         : `https://drive.google.com/uc?export=download&id=${id}`;
     }
 
     fetch(url)
-      .then(r => r.json())
-      .then(data=>{
-        if(!data.length){
+      .then(r=>r.json())
+      .then(rows=>{
+        if(!rows.length){
           document.getElementById("lista-canciones").textContent =
             "No hay canciones para mostrar.";
           return;
         }
-        const html = data.map(c=>{
-          const portada = convertDrive(c["Portada de la cancion"],{isImage:true})
-                       || 'https://via.placeholder.com/100?text=No+Image';
-          const audio   = convertDrive(c["Audio o musica"]) || "";
+
+        const html = rows.map(c=>{
+          const portada = toDirectDrive(c["Portada de la cancion"],{isImage:true}) ||
+                          "https://via.placeholder.com/100?text=No+Image";
+          const audio   = toDirectDrive(c["Audio o musica"]) || "";
+
           return `
             <div class="cancion">
               <img class="portada" src="${portada}" alt="Portada" />
@@ -70,14 +76,15 @@
                 <div class="campo"><strong>Fecha:</strong> ${c["fecha"]||c["fejca"]||"-"}</div>
                 ${
                   audio
-                  ? `<audio controls preload="metadata" crossorigin="anonymous">
-                       <source src="${audio}" type="audio/mpeg">
-                     </audio>`
-                  : `<div class="no-audio">No hay audio disponible</div>`
+                    ? `<audio controls preload="metadata">
+                         <source src="${audio}" type="audio/mpeg">
+                       </audio>`
+                    : `<div class="no-audio">No hay audio disponible</div>`
                 }
               </div>
             </div>`;
         }).join("");
+
         document.getElementById("lista-canciones").innerHTML = html;
       })
       .catch(err=>{
