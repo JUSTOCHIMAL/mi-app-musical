@@ -5,54 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Lista completa de canciones</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #fafafa;
-      padding: 20px;
-      max-width: 700px;
-      margin: auto;
-    }
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-    .cancion {
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      padding: 15px;
-      margin-bottom: 20px;
-      display: flex;
-      gap: 15px;
-      align-items: flex-start;
-    }
-    .portada {
-      width: 100px;
-      height: 100px;
-      border-radius: 6px;
-      object-fit: cover;
-      flex-shrink: 0;
-      background: #ddd;
-    }
-    .info {
-      flex-grow: 1;
-    }
-    .campo {
-      margin-bottom: 6px;
-    }
-    .campo strong {
-      color: #333;
-    }
-    audio {
-      margin-top: 8px;
-      width: 100%;
-      outline: none;
-    }
-    .no-audio {
-      font-style: italic;
-      color: #999;
-      margin-top: 8px;
-    }
+    body{font-family:Arial,sans-serif;background:#fafafa;padding:20px;max-width:700px;margin:auto}
+    h1{text-align:center;margin-bottom:20px}
+    .cancion{background:#fff;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.1);padding:15px;margin-bottom:20px;display:flex;gap:15px;align-items:flex-start}
+    .portada{width:100px;height:100px;border-radius:6px;object-fit:cover;flex-shrink:0;background:#ddd}
+    .info{flex-grow:1}
+    .campo{margin-bottom:6px}
+    .campo strong{color:#333}
+    audio{margin-top:8px;width:100%;outline:none}
+    .no-audio{font-style:italic;color:#999;margin-top:8px}
   </style>
 </head>
 <body>
@@ -60,73 +21,69 @@
   <div id="lista-canciones">Cargando canciones...</div>
 
   <script>
-    const SHEET_ID = "1CdduNGI21R9WGR4On5kXt2yl3UQHlynLd9MyPdkMqyQ";
-    const SHEET_NAME = "Sheet1"; // Cambia si es otro nombre
+    /* --- CONFIGURA ESTOS DOS VALORES --- */
+    const SHEET_ID   = "1CdduNGI21R9WGR4On5kXt2yl3UQHlynLd9MyPdkMqyQ";
+    const SHEET_NAME = "Sheet1";        // Cambia si tu pestaña no se llama Sheet1
+    /* ----------------------------------- */
 
-    const url = `https://opensheet.elk.sh/${SHEET_ID}/${SHEET_NAME}`;
+    const url = `https://opensheet.elk.sh/${SHEET_ID}/${encodeURIComponent(SHEET_NAME)}`;
 
-    // Función para convertir enlace de Google Drive a enlace directo
-    function googleDriveToDirectLink(url) {
-      if (!url) return "";
-      // Si ya es un enlace directo, retornarlo tal cual
-      if (url.includes("uc?export=download")) return url;
-
-      // Extraer ID del archivo Google Drive
-      const regex = /\/d\/([a-zA-Z0-9_-]+)\//;
-      const match = url.match(regex);
-      if (match && match[1]) {
-        return `https://drive.google.com/uc?export=download&id=${match[1]}`;
-      }
-
-      // Para enlaces compartidos de tipo "open?id=ID"
-      const regex2 = /id=([a-zA-Z0-9_-]+)/;
-      const match2 = url.match(regex2);
-      if (match2 && match2[1]) {
-        return `https://drive.google.com/uc?export=download&id=${match2[1]}`;
-      }
-
-      // Si no pudo extraer ID, devolver la URL original
-      return url;
+    /* Extrae el ID y construye el enlace directo de Google Drive  */
+    function getDriveId(link){
+      if(!link) return null;
+      const byD = link.match(/\/d\/([A-Za-z0-9_-]{10,})/);
+      if(byD) return byD[1];
+      const byId = link.match(/id=([A-Za-z0-9_-]{10,})/);
+      return byId ? byId[1] : null;
+    }
+    function convertDrive(link,{isImage=false}={}){
+      if(!link) return "";
+      if(link.includes("drive.google.com/uc?")) return link;   // ya es directo
+      const id = getDriveId(link);
+      if(!id) return link;                                     // no es enlace de Drive
+      /* export=view muestra imagen directamente, export=download sirve para audio */
+      return isImage
+        ? `https://drive.google.com/uc?export=view&id=${id}`
+        : `https://drive.google.com/uc?export=download&id=${id}`;
     }
 
     fetch(url)
-      .then(res => res.json())
-      .then(data => {
-        if (!data.length) {
-          document.getElementById("lista-canciones").innerHTML = "No hay canciones para mostrar.";
+      .then(r => r.json())
+      .then(data=>{
+        if(!data.length){
+          document.getElementById("lista-canciones").textContent =
+            "No hay canciones para mostrar.";
           return;
         }
-
-        let html = "";
-        data.forEach(cancion => {
-          // Extraer y convertir enlaces
-          const portada = googleDriveToDirectLink(cancion["Portada de la cancion"]) || 'https://via.placeholder.com/100?text=No+Image';
-          const audioUrl = googleDriveToDirectLink(cancion["Audio o musica"]) || "";
-
-          html += `
+        const html = data.map(c=>{
+          const portada = convertDrive(c["Portada de la cancion"],{isImage:true})
+                       || 'https://via.placeholder.com/100?text=No+Image';
+          const audio   = convertDrive(c["Audio o musica"]) || "";
+          return `
             <div class="cancion">
               <img class="portada" src="${portada}" alt="Portada" />
               <div class="info">
-                <div class="campo"><strong>Marca temporal:</strong> ${cancion["Marca temporal"] || "-"}</div>
-                <div class="campo"><strong>Nombre de la cancion:</strong> ${cancion["Nombre de la cancion"] || "-"}</div>
-                <div class="campo"><strong>Artista de la cancion:</strong> ${cancion["Artista de la cancion"] || "-"}</div>
-                <div class="campo"><strong>Album de la cancion:</strong> ${cancion["Album de la cancion"] || "-"}</div>
-                <div class="campo"><strong>Fecha:</strong> ${cancion["fejca"] || cancion["fecha"] || "-"}</div>
+                <div class="campo"><strong>Marca temporal:</strong> ${c["Marca temporal"]||"-"}</div>
+                <div class="campo"><strong>Nombre de la cancion:</strong> ${c["Nombre de la cancion"]||"-"}</div>
+                <div class="campo"><strong>Artista de la cancion:</strong> ${c["Artista de la cancion"]||"-"}</div>
+                <div class="campo"><strong>Album de la cancion:</strong> ${c["Album de la cancion"]||"-"}</div>
+                <div class="campo"><strong>Fecha:</strong> ${c["fecha"]||c["fejca"]||"-"}</div>
                 ${
-                  audioUrl
-                    ? `<audio controls preload="none" src="${audioUrl}"></audio>`
-                    : `<div class="no-audio">No hay audio disponible</div>`
+                  audio
+                  ? `<audio controls preload="metadata" crossorigin="anonymous">
+                       <source src="${audio}" type="audio/mpeg">
+                     </audio>`
+                  : `<div class="no-audio">No hay audio disponible</div>`
                 }
               </div>
-            </div>
-          `;
-        });
-
+            </div>`;
+        }).join("");
         document.getElementById("lista-canciones").innerHTML = html;
       })
-      .catch(err => {
-        console.error("Error al cargar canciones:", err);
-        document.getElementById("lista-canciones").innerHTML = "Error al cargar canciones.";
+      .catch(err=>{
+        console.error("Error al cargar canciones:",err);
+        document.getElementById("lista-canciones").textContent =
+          "Error al cargar canciones.";
       });
   </script>
 </body>
