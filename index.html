@@ -48,6 +48,11 @@
       width: 100%;
       outline: none;
     }
+    .no-audio {
+      font-style: italic;
+      color: #999;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
@@ -55,9 +60,34 @@
   <div id="lista-canciones">Cargando canciones...</div>
 
   <script>
-    const SHEET_ID = "1CdduNGI21R9WGR4On5kXt2yl3UQHlynLd9MyPdkMqyQ"; // Cambia aquí
+    const SHEET_ID = "1CdduNGI21R9WGR4On5kXt2yl3UQHlynLd9MyPdkMqyQ";
+    const SHEET_NAME = "Sheet1"; // Cambia si es otro nombre
 
-    const url = `https://opensheet.elk.sh/${SHEET_ID}/Sheet1`; // Cambia "Sheet1" si hace falta
+    const url = `https://opensheet.elk.sh/${SHEET_ID}/${SHEET_NAME}`;
+
+    // Función para convertir enlace de Google Drive a enlace directo
+    function googleDriveToDirectLink(url) {
+      if (!url) return "";
+      // Si ya es un enlace directo, retornarlo tal cual
+      if (url.includes("uc?export=download")) return url;
+
+      // Extraer ID del archivo Google Drive
+      const regex = /\/d\/([a-zA-Z0-9_-]+)\//;
+      const match = url.match(regex);
+      if (match && match[1]) {
+        return `https://drive.google.com/uc?export=download&id=${match[1]}`;
+      }
+
+      // Para enlaces compartidos de tipo "open?id=ID"
+      const regex2 = /id=([a-zA-Z0-9_-]+)/;
+      const match2 = url.match(regex2);
+      if (match2 && match2[1]) {
+        return `https://drive.google.com/uc?export=download&id=${match2[1]}`;
+      }
+
+      // Si no pudo extraer ID, devolver la URL original
+      return url;
+    }
 
     fetch(url)
       .then(res => res.json())
@@ -69,16 +99,24 @@
 
         let html = "";
         data.forEach(cancion => {
+          // Extraer y convertir enlaces
+          const portada = googleDriveToDirectLink(cancion["Portada de la cancion"]) || 'https://via.placeholder.com/100?text=No+Image';
+          const audioUrl = googleDriveToDirectLink(cancion["Audio o musica"]) || "";
+
           html += `
             <div class="cancion">
-              <img class="portada" src="${cancion["Portada de la cancion"] || 'https://via.placeholder.com/100'}" alt="Portada" />
+              <img class="portada" src="${portada}" alt="Portada" />
               <div class="info">
                 <div class="campo"><strong>Marca temporal:</strong> ${cancion["Marca temporal"] || "-"}</div>
                 <div class="campo"><strong>Nombre de la cancion:</strong> ${cancion["Nombre de la cancion"] || "-"}</div>
                 <div class="campo"><strong>Artista de la cancion:</strong> ${cancion["Artista de la cancion"] || "-"}</div>
                 <div class="campo"><strong>Album de la cancion:</strong> ${cancion["Album de la cancion"] || "-"}</div>
-                <div class="campo"><strong>Fecha:</strong> ${cancion["fejca"] || "-"}</div>
-                <audio controls preload="none" src="${cancion["Audio o musica"] || ""}"></audio>
+                <div class="campo"><strong>Fecha:</strong> ${cancion["fejca"] || cancion["fecha"] || "-"}</div>
+                ${
+                  audioUrl
+                    ? `<audio controls preload="none" src="${audioUrl}"></audio>`
+                    : `<div class="no-audio">No hay audio disponible</div>`
+                }
               </div>
             </div>
           `;
